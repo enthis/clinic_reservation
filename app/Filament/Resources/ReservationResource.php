@@ -11,51 +11,85 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class ReservationResource extends Resource
 {
     protected static ?string $model = Reservation::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-bookmark';
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('user_id')
+                Forms\Components\Select::make('user_id')
+                    ->relationship('user', 'name')
                     ->required()
-                    ->numeric(),
-                Forms\Components\TextInput::make('doctor_id')
+                    ->searchable()
+                    ->preload(),
+                Forms\Components\Select::make('doctor_id')
+                    ->relationship('doctor', 'name')
                     ->required()
-                    ->numeric(),
-                Forms\Components\TextInput::make('service_id')
+                    ->searchable()
+                    ->preload(),
+                Forms\Components\Select::make('service_id')
+                    ->relationship('service', 'name')
                     ->required()
-                    ->numeric(),
-                Forms\Components\TextInput::make('schedule_id')
+                    ->searchable()
+                    ->preload(),
+                Forms\Components\Select::make('schedule_id')
+                    ->relationship('schedule', 'date') // Display schedule date, you might want to customize this
+                    ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->date->format('M d, Y')} ({$record->start_time} - {$record->end_time})")
                     ->required()
-                    ->numeric(),
+                    ->searchable()
+                    ->preload(),
                 Forms\Components\DatePicker::make('scheduled_date')
-                    ->required(),
-                Forms\Components\TextInput::make('scheduled_time')
-                    ->required(),
-                Forms\Components\TextInput::make('status')
                     ->required()
-                    ->maxLength(255)
-                    ->default('pending'),
-                Forms\Components\TextInput::make('payment_status')
+                    ->native(false),
+                Forms\Components\TimePicker::make('scheduled_time')
                     ->required()
-                    ->maxLength(255)
-                    ->default('pending'),
+                    ->seconds(false)
+                    ->displayFormat('H:i'),
+                Forms\Components\Select::make('status')
+                    ->options([
+                        'pending' => 'Pending',
+                        'approved' => 'Approved',
+                        'rejected' => 'Rejected',
+                        'completed' => 'Completed',
+                        'cancelled' => 'Cancelled',
+                    ])
+                    ->required()
+                    ->default('pending')
+                    ->native(false),
+                Forms\Components\Select::make('payment_status')
+                    ->options([
+                        'pending' => 'Pending',
+                        'paid' => 'Paid',
+                        'failed' => 'Failed',
+                        'refunded' => 'Refunded',
+                    ])
+                    ->required()
+                    ->default('pending')
+                    ->native(false),
                 Forms\Components\TextInput::make('payment_amount')
+                    ->numeric()
                     ->required()
-                    ->numeric(),
-                Forms\Components\TextInput::make('approved_by')
-                    ->numeric()
-                    ->default(null),
-                Forms\Components\TextInput::make('completed_by')
-                    ->numeric()
-                    ->default(null),
+                    ->prefix('Rp')
+                    ->step(0.01),
+                Forms\Components\Select::make('approved_by')
+                    ->relationship('approver', 'name')
+                    ->label('Approved By (Staff)')
+                    ->nullable()
+                    ->searchable()
+                    ->preload(),
+                Forms\Components\Select::make('completed_by')
+                    ->relationship('completer', 'name')
+                    ->label('Completed By (Staff)')
+                    ->nullable()
+                    ->searchable()
+                    ->preload(),
             ]);
     }
 
@@ -63,35 +97,55 @@ class ReservationResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('user_id')
-                    ->numeric()
+                Tables\Columns\TextColumn::make('user.name')
+                    ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('doctor_id')
-                    ->numeric()
+                Tables\Columns\TextColumn::make('doctor.name')
+                    ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('service_id')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('schedule_id')
-                    ->numeric()
+                Tables\Columns\TextColumn::make('service.name')
+                    ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('scheduled_date')
                     ->date()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('scheduled_time'),
+                Tables\Columns\TextColumn::make('scheduled_time')
+                    ->time('H:i')
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('status')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'pending' => 'warning',
+                        'approved' => 'success',
+                        'rejected' => 'danger',
+                        'completed' => 'info',
+                        'cancelled' => 'gray',
+                    })
                     ->searchable(),
                 Tables\Columns\TextColumn::make('payment_status')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'pending' => 'warning',
+                        'paid' => 'success',
+                        'failed' => 'danger',
+                        'refunded' => 'gray',
+                    })
                     ->searchable(),
                 Tables\Columns\TextColumn::make('payment_amount')
-                    ->numeric()
+                    ->money('IDR')
                     ->sortable(),
-                Tables\Columns\TextColumn::make('approved_by')
-                    ->numeric()
-                    ->sortable(),
-                Tables\Columns\TextColumn::make('completed_by')
-                    ->numeric()
-                    ->sortable(),
+                Tables\Columns\TextColumn::make('approver.name')
+                    ->label('Approved By')
+                    ->placeholder('N/A')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('completer.name')
+                    ->label('Completed By')
+                    ->placeholder('N/A')
+                    ->searchable()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -106,14 +160,65 @@ class ReservationResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                Tables\Filters\TrashedFilter::make(),
+                Tables\Filters\SelectFilter::make('status')
+                    ->options([
+                        'pending' => 'Pending',
+                        'approved' => 'Approved',
+                        'rejected' => 'Rejected',
+                        'completed' => 'Completed',
+                        'cancelled' => 'Cancelled',
+                    ]),
+                Tables\Filters\SelectFilter::make('payment_status')
+                    ->options([
+                        'pending' => 'Pending',
+                        'paid' => 'Paid',
+                        'failed' => 'Failed',
+                        'refunded' => 'Refunded',
+                    ]),
+                Tables\Filters\SelectFilter::make('doctor_id')
+                    ->relationship('doctor', 'name')
+                    ->label('Filter by Doctor'),
+                Tables\Filters\SelectFilter::make('service_id')
+                    ->relationship('service', 'name')
+                    ->label('Filter by Service'),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\ForceDeleteAction::make(),
+                Tables\Actions\RestoreAction::make(),
+                // Custom actions for staff/doctor
+                Tables\Actions\Action::make('approve')
+                    ->label('Approve')
+                    ->icon('heroicon-o-check-circle')
+                    ->color('success')
+                    ->visible(fn (Reservation $record): bool => $record->status === 'pending' && auth()->user()->can('approveReservations'))
+                    ->action(function (Reservation $record) {
+                        $record->update(['status' => 'approved', 'approved_by' => auth()->id()]);
+                        \Filament\Notifications\Notification::make()
+                            ->title('Reservation Approved')
+                            ->success()
+                            ->send();
+                    }),
+                Tables\Actions\Action::make('complete')
+                    ->label('Complete')
+                    ->icon('heroicon-o-clipboard-document-check')
+                    ->color('info')
+                    ->visible(fn (Reservation $record): bool => $record->status === 'approved' && auth()->user()->can('completeReservations'))
+                    ->action(function (Reservation $record) {
+                        $record->update(['status' => 'completed', 'completed_by' => auth()->id()]);
+                        \Filament\Notifications\Notification::make()
+                            ->title('Reservation Completed')
+                            ->success()
+                            ->send();
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\ForceDeleteBulkAction::make(),
+                    Tables\Actions\RestoreBulkAction::make(),
                 ]),
             ]);
     }
@@ -121,7 +226,9 @@ class ReservationResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            RelationManagers\PaymentsRelationManager::class, // Link to payments
+            RelationManagers\RecipesRelationManager::class, // Link to recipes
+            RelationManagers\DoctorNotesRelationManager::class, // Link to doctor notes
         ];
     }
 
@@ -133,4 +240,67 @@ class ReservationResource extends Resource
             'edit' => Pages\EditReservation::route('/{record}/edit'),
         ];
     }
+
+    public static function getEloquentQuery(): Builder
+    {
+        // For doctors, only show reservations they handle
+        if (auth()->user()->hasRole('doctor') && !auth()->user()->can('viewAnyReservation')) {
+            return parent::getEloquentQuery()
+                ->where('doctor_id', auth()->user()->doctor->id)
+                ->withoutGlobalScopes([
+                    SoftDeletingScope::class,
+                ]);
+        }
+
+        // For regular users, only show their own reservations
+        if (auth()->user()->hasRole('user') && !auth()->user()->can('viewAnyReservation')) {
+            return parent::getEloquentQuery()
+                ->where('user_id', auth()->id())
+                ->withoutGlobalScopes([
+                    SoftDeletingScope::class,
+                ]);
+        }
+
+        return parent::getEloquentQuery()
+            ->withoutGlobalScopes([
+                SoftDeletingScope::class,
+            ]);
+    }
+
+    // Spatie Permission Integration
+    public static function canViewAny(): bool
+    {
+        // Admins and Staff can view any. Doctors/Users might have restricted view.
+        return auth()->user()->can('viewAnyReservation');
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()->can('createReservation');
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        // Staff can edit any. Doctors can edit their own. Users can edit their own (e.g., cancel)
+        return auth()->user()->can('editReservation') ||
+               (auth()->user()->hasRole('doctor') && $record->doctor_id === auth()->user()->doctor->id) ||
+               (auth()->user()->hasRole('user') && $record->user_id === auth()->id());
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        // Only admins and staff can delete reservations
+        return auth()->user()->can('deleteReservation');
+    }
+
+    public static function canForceDelete(Model $record): bool
+    {
+        return auth()->user()->can('deleteReservation');
+    }
+
+    public static function canRestore(Model $record): bool
+    {
+        return auth()->user()->can('editReservation');
+    }
 }
+

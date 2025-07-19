@@ -4,8 +4,9 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use App\Models\PaymentGatewayConfig; // Make sure to create this model
-use Illuminate\Support\Facades\Crypt; // For encryption
+use App\Models\PaymentGatewayConfig;
+use Illuminate\Support\Facades\Crypt;
+use Illuminate\Support\Facades\Log; // Added for logging potential issues
 
 class PaymentGatewayConfigSeeder extends Seeder
 {
@@ -22,7 +23,7 @@ class PaymentGatewayConfigSeeder extends Seeder
                 'config_key' => 'server_key',
             ],
             [
-                'config_value' => Crypt::encryptString('SB-Mid-server-YOUR_SANDBOX_SERVER_KEY'), // Encrypt sensitive data
+                'config_value' => Crypt::encryptString('SB-Mid-server-m1D0PCtdL_XdCyYo9osSSMEe'), // Encrypt sensitive data
                 'is_encrypted' => true,
             ]
         );
@@ -34,7 +35,7 @@ class PaymentGatewayConfigSeeder extends Seeder
                 'config_key' => 'client_key',
             ],
             [
-                'config_value' => 'SB-Mid-client-YOUR_SANDBOX_CLIENT_KEY', // Client key usually not encrypted
+                'config_value' => 'SB-Mid-client-KEnuu62UKFDhFolJ', // Client key usually not encrypted
                 'is_encrypted' => false,
             ]
         );
@@ -46,7 +47,7 @@ class PaymentGatewayConfigSeeder extends Seeder
                 'config_key' => 'merchant_id',
             ],
             [
-                'config_value' => 'YOUR_SANDBOX_MERCHANT_ID',
+                'config_value' => 'G875131585',
                 'is_encrypted' => false,
             ]
         );
@@ -63,7 +64,8 @@ class PaymentGatewayConfigSeeder extends Seeder
             ]
         );
 
-        // --- Midtrans Production Configuration ---
+        // --- Midtrans Production Configuration (add your actual production keys here when ready) ---
+        // For now, using placeholders. REPLACE THESE IN PRODUCTION.
         PaymentGatewayConfig::firstOrCreate(
             [
                 'gateway_name' => 'midtrans',
@@ -71,7 +73,7 @@ class PaymentGatewayConfigSeeder extends Seeder
                 'config_key' => 'server_key',
             ],
             [
-                'config_value' => Crypt::encryptString('Mid-server-YOUR_PRODUCTION_SERVER_KEY'), // Encrypt sensitive data
+                'config_value' => Crypt::encryptString('Mid-server-YOUR_PRODUCTION_SERVER_KEY'),
                 'is_encrypted' => true,
             ]
         );

@@ -11,29 +11,33 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class DoctorNoteResource extends Resource
 {
     protected static ?string $model = DoctorNote::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-pencil-square';
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('reservation_id')
+                Forms\Components\Select::make('reservation_id')
+                    ->relationship('reservation', 'id')
+                    ->getOptionLabelFromRecordUsing(fn($record) => "Reservation #{$record->id} - {$record->user->name} ({$record->scheduled_date->format('M d, Y')})")
                     ->required()
-                    ->numeric(),
-                Forms\Components\TextInput::make('prescription_item_id')
+                    ->searchable()
+                    ->preload(),
+                Forms\Components\Select::make('doctor_id')
+                    ->relationship('doctor', 'name')
                     ->required()
-                    ->numeric(),
-                Forms\Components\TextInput::make('dose')
+                    ->searchable()
+                    ->preload(),
+                Forms\Components\Textarea::make('note_content')
                     ->required()
-                    ->maxLength(255),
-                Forms\Components\Textarea::make('notes')
-                    ->columnSpanFull(),
+                    ->maxLength(65535),
             ]);
     }
 
@@ -41,14 +45,20 @@ class DoctorNoteResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('reservation_id')
-                    ->numeric()
+                Tables\Columns\TextColumn::make('reservation.id')
+                    ->label('Reservation ID')
+                    ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('prescription_item_id')
-                    ->numeric()
+                Tables\Columns\TextColumn::make('reservation.user.name')
+                    ->label('Patient Name')
+                    ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('dose')
-                    ->searchable(),
+                Tables\Columns\TextColumn::make('doctor.name')
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('note_content')
+                    ->limit(70)
+                    ->wrap(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -63,14 +73,25 @@ class DoctorNoteResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                Tables\Filters\TrashedFilter::make(),
+                Tables\Filters\SelectFilter::make('reservation_id')
+                    ->relationship('reservation', 'id')
+                    ->label('Filter by Reservation'),
+                Tables\Filters\SelectFilter::make('doctor_id')
+                    ->relationship('doctor', 'name')
+                    ->label('Filter by Doctor'),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\ForceDeleteAction::make(),
+                Tables\Actions\RestoreAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\ForceDeleteBulkAction::make(),
+                    Tables\Actions\RestoreBulkAction::make(),
                 ]),
             ]);
     }
@@ -89,5 +110,71 @@ class DoctorNoteResource extends Resource
             'create' => Pages\CreateDoctorNote::route('/create'),
             'edit' => Pages\EditDoctorNote::route('/{record}/edit'),
         ];
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        // Doctors can only see/manage notes for their own reservations
+        if (auth()->user()->hasRole('doctor') && !auth()->user()->can('viewAnyDoctorNote')) {
+            return parent::getEloquentQuery()
+                ->where('doctor_id', auth()->user()->doctor->id)
+                ->withoutGlobalScopes([
+                    SoftDeletingScope::class,
+                ]);
+        }
+        // Users can only see their own notes
+        if (auth()->user()->hasRole('user') && !auth()->user()->can('viewAnyDoctorNote')) {
+            return parent::getEloquentQuery()
+                ->whereHas('reservation', fn($query) => $query->where('user_id', auth()->id()))
+                ->withoutGlobalScopes([
+                    SoftDeletingScope::class,
+                ]);
+        }
+
+        return parent::getEloquentQuery()
+            ->withoutGlobalScopes([
+                SoftDeletingScope::class,
+            ]);
+    }
+
+    // Spatie Permission Integration
+    public static function canViewAny(): bool
+    {
+        return auth()->user()->can('viewAnyDoctorNote');
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()->can('createDoctorNote');
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        // Doctors can edit their own notes
+        if (auth()->user()->hasRole('doctor') && $record->doctor_id === auth()->user()->doctor->id) {
+            return auth()->user()->can('editDoctorNote');
+        }
+        // Admins/Staff can edit any note
+        return auth()->user()->can('editDoctorNote');
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        // Doctors can delete their own notes
+        if (auth()->user()->hasRole('doctor') && $record->doctor_id === auth()->user()->doctor->id) {
+            return auth()->user()->can('deleteDoctorNote');
+        }
+        // Admins/Staff can delete any note
+        return auth()->user()->can('deleteDoctorNote');
+    }
+
+    public static function canForceDelete(Model $record): bool
+    {
+        return auth()->user()->can('deleteDoctorNote');
+    }
+
+    public static function canRestore(Model $record): bool
+    {
+        return auth()->user()->can('editDoctorNote');
     }
 }

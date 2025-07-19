@@ -4,11 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes; // Import SoftDeletes trait
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class DoctorSchedule extends Model
 {
-    use HasFactory, SoftDeletes; // Use SoftDeletes trait
+    use HasFactory, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -17,10 +17,11 @@ class DoctorSchedule extends Model
      */
     protected $fillable = [
         'doctor_id',
-        'date',
+        'day_of_week', // Changed from 'date'
         'start_time',
         'end_time',
         'is_available',
+        'notes', // Added 'notes'
     ];
 
     /**
@@ -29,7 +30,7 @@ class DoctorSchedule extends Model
      * @var array<string, string>
      */
     protected $casts = [
-        'date' => 'date',
+        'day_of_week' => 'integer', // Cast day_of_week to integer
         'is_available' => 'boolean',
     ];
 
@@ -48,5 +49,20 @@ class DoctorSchedule extends Model
     {
         return $this->hasOne(Reservation::class, 'schedule_id');
     }
-}
 
+    /**
+     * Get the day of the week name from its integer representation.
+     */
+    public function getDayNameAttribute(): string
+    {
+        return [
+            0 => 'Sunday',
+            1 => 'Monday',
+            2 => 'Tuesday',
+            3 => 'Wednesday',
+            4 => 'Thursday',
+            5 => 'Friday',
+            6 => 'Saturday',
+        ][$this->day_of_week] ?? 'Unknown';
+    }
+}

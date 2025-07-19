@@ -65,6 +65,8 @@ class UserSeeder extends Seeder
         Permission::firstOrCreate(['name' => 'viewOwnRecipes']);
         Permission::firstOrCreate(['name' => 'viewOwnDoctorNotes']);
         Permission::firstOrCreate(['name' => 'viewAllPatients']);
+        Permission::firstOrCreate(['name' => 'inputRecipe']);
+        Permission::firstOrCreate(['name' => 'inputDoctorNote']);
 
         // Create Roles
         $adminRole = Role::firstOrCreate(['name' => 'admin']);
@@ -79,48 +81,22 @@ class UserSeeder extends Seeder
 
         // Staff: Can manage most clinic operations, but not core user/role management or payment gateway config
         $staffPermissions = [
-            'viewAnyService',
-            'viewService',
-            'createService',
-            'editService',
-            'deleteService',
-            'viewAnyDoctor',
-            'viewDoctor',
-            'createDoctor',
-            'editDoctor',
-            'deleteDoctor',
-            'viewAnyDoctorSchedule',
-            'viewDoctorSchedule',
-            'createDoctorSchedule',
-            'editDoctorSchedule',
-            'deleteDoctorSchedule',
-            'viewAnyReservation',
-            'viewReservation',
-            'editReservation', // Staff can edit status
-            'approveReservations',
-            'completeReservations',
-            'viewAnyPayment',
-            'viewPayment', // Staff can view payments
-            'viewAnyDoctorNote',
-            'viewDoctorNote', // Staff can view doctor notes
+            'viewAnyService', 'viewService', 'createService', 'editService', 'deleteService',
+            'viewAnyDoctor', 'viewDoctor', 'createDoctor', 'editDoctor', 'deleteDoctor',
+            'viewAnyDoctorSchedule', 'viewDoctorSchedule', 'createDoctorSchedule', 'editDoctorSchedule', 'deleteDoctorSchedule',
+            'viewAnyReservation', 'viewReservation', 'editReservation', // Staff can edit status
+            'approveReservations', 'completeReservations',
+            'viewAnyPayment', 'viewPayment', // Staff can view payments
+            'viewAnyDoctorNote', 'viewDoctorNote', // Staff can view doctor notes
         ];
         $staffRole->givePermissionTo($staffPermissions);
 
         // Doctor: Can view their own reservations, input recipes and notes, view patients
         $doctorPermissions = [
-            'viewAnyReservation',
-            'viewReservation', // Can view all reservations to find their own
+            'viewAnyReservation', 'viewReservation', // Can view all reservations to find their own
             'editReservation', // To update reservation status if needed (e.g., consultation started)
-            'viewAnyRecipe',
-            'viewRecipe',
-            'createRecipe',
-            'editRecipe',
-            'deleteRecipe', // Doctors manage recipes
-            'viewAnyDoctorNote',
-            'viewDoctorNote',
-            'createDoctorNote',
-            'editDoctorNote',
-            'deleteDoctorNote', // Doctors manage notes
+            'viewAnyRecipe', 'viewRecipe', 'createRecipe', 'editRecipe', 'deleteRecipe', // Doctors manage recipes
+            'viewAnyDoctorNote', 'viewDoctorNote', 'createDoctorNote', 'editDoctorNote', 'deleteDoctorNote', // Doctors manage notes
             'viewAllPatients', // For viewing patients they handle
             'viewOwnReservations', // Specific permission for user journey
             'inputRecipe', // Alias for create/edit recipe
@@ -133,13 +109,10 @@ class UserSeeder extends Seeder
         // User: Can create and view their own reservations, pay, view their own recipes/notes
         $userPermissions = [
             'createReservation',
-            'viewAnyReservation',
-            'viewReservation', // To see their own reservations
+            'viewAnyReservation', 'viewReservation', // To see their own reservations
             'payForReservation',
-            'viewAnyRecipe',
-            'viewRecipe', // To view recipes (limited to their own via policy)
-            'viewAnyDoctorNote',
-            'viewDoctorNote', // To view doctor notes (limited to their own via policy)
+            'viewAnyRecipe', 'viewRecipe', // To view recipes (limited to their own via policy)
+            'viewAnyDoctorNote', 'viewDoctorNote', // To view doctor notes (limited to their own via policy)
             'viewOwnReservations',
             'viewOwnRecipes',
             'viewOwnDoctorNotes',
@@ -157,6 +130,18 @@ class UserSeeder extends Seeder
             ]
         );
         $adminUser->assignRole('admin');
+
+        // Add the special admin user
+        $specialAdminUser = User::firstOrCreate(
+            ['email' => 'nharits74@gmail.com'],
+            [
+                'name' => 'Nharits Admin',
+                'password' => Hash::make('password'), // Set a default password, user can change it
+                'email_verified_at' => now(),
+            ]
+        );
+        $specialAdminUser->assignRole('admin');
+
 
         $staffUser = User::firstOrCreate(
             ['email' => 'staff@example.com'],
@@ -204,3 +189,4 @@ class UserSeeder extends Seeder
         });
     }
 }
+

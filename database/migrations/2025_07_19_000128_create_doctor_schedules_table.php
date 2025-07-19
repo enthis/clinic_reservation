@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('doctor_schedules', function (Blueprint $table) {
             $table->id();
             $table->foreignId('doctor_id')->constrained('doctors')->onDelete('cascade');
-            $table->date('date');
+            // $table->date('date');
             $table->time('start_time');
             $table->time('end_time');
             $table->boolean('is_available')->default(true);
@@ -22,7 +22,7 @@ return new class extends Migration
             $table->softDeletes();
 
             // Optional: Add a unique constraint to prevent duplicate schedules for a doctor on a specific time slot
-            $table->unique(['doctor_id', 'date', 'start_time', 'end_time']);
+            // $table->unique(['doctor_id', 'date', 'start_time', 'end_time']);
         });
     }
 

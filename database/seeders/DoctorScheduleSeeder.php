@@ -16,23 +16,21 @@ class DoctorScheduleSeeder extends Seeder
     public function run(): void
     {
         $doctors = Doctor::all();
-        $today = Carbon::today();
 
         foreach ($doctors as $doctor) {
-            // Create schedules for the next 7 days
-            for ($i = 0; $i < 7; $i++) {
-                $date = $today->copy()->addDays($i);
-
+            // Create schedules for each day of the week (0=Sunday, 1=Monday, ..., 6=Saturday)
+            for ($dayOfWeek = 0; $dayOfWeek <= 6; $dayOfWeek++) {
                 // Example: Morning slot
                 DoctorSchedule::firstOrCreate(
                     [
                         'doctor_id' => $doctor->id,
-                        'date' => $date,
+                        'day_of_week' => $dayOfWeek,
                         'start_time' => '09:00:00',
                         'end_time' => '12:00:00',
                     ],
                     [
                         'is_available' => true,
+                        'notes' => "Morning shift on " . (new Carbon())->dayOfWeek($dayOfWeek)->format('l'),
                     ]
                 );
 
@@ -40,12 +38,13 @@ class DoctorScheduleSeeder extends Seeder
                 DoctorSchedule::firstOrCreate(
                     [
                         'doctor_id' => $doctor->id,
-                        'date' => $date,
+                        'day_of_week' => $dayOfWeek,
                         'start_time' => '14:00:00',
                         'end_time' => '17:00:00',
                     ],
                     [
                         'is_available' => true,
+                        'notes' => "Afternoon shift on " . (new Carbon())->dayOfWeek($dayOfWeek)->format('l'),
                     ]
                 );
             }

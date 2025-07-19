@@ -11,13 +11,14 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class PrescriptionItemResource extends Resource
 {
     protected static ?string $model = PrescriptionItem::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-archive-box';
 
     public static function form(Form $form): Form
     {
@@ -25,14 +26,16 @@ class PrescriptionItemResource extends Resource
             ->schema([
                 Forms\Components\TextInput::make('name')
                     ->required()
+                    ->unique(ignoreRecord: true)
                     ->maxLength(255),
                 Forms\Components\Textarea::make('description')
-                    ->columnSpanFull(),
+                    ->nullable()
+                    ->maxLength(65535),
                 Forms\Components\TextInput::make('price')
-                    ->required()
                     ->numeric()
-                    ->default(0.00)
-                    ->prefix('IDR'),
+                    ->required()
+                    ->prefix('Rp')
+                    ->step(0.01),
             ]);
     }
 
@@ -42,8 +45,11 @@ class PrescriptionItemResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('name')
                     ->searchable(),
+                Tables\Columns\TextColumn::make('description')
+                    ->limit(50)
+                    ->wrap(),
                 Tables\Columns\TextColumn::make('price')
-                    ->money()
+                    ->money('IDR')
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
@@ -59,14 +65,19 @@ class PrescriptionItemResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                Tables\Filters\TrashedFilter::make(),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\ForceDeleteAction::make(),
+                Tables\Actions\RestoreAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
+                    Tables\Actions\ForceDeleteBulkAction::make(),
+                    Tables\Actions\RestoreBulkAction::make(),
                 ]),
             ]);
     }
@@ -86,4 +97,44 @@ class PrescriptionItemResource extends Resource
             'edit' => Pages\EditPrescriptionItem::route('/{record}/edit'),
         ];
     }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->withoutGlobalScopes([
+                SoftDeletingScope::class,
+            ]);
+    }
+
+    // Spatie Permission Integration
+    public static function canViewAny(): bool
+    {
+        return auth()->user()->can('viewAnyPrescriptionItem');
+    }
+
+    public static function canCreate(): bool
+    {
+        return auth()->user()->can('createPrescriptionItem');
+    }
+
+    public static function canEdit(Model $record): bool
+    {
+        return auth()->user()->can('editPrescriptionItem');
+    }
+
+    public static function canDelete(Model $record): bool
+    {
+        return auth()->user()->can('deletePrescriptionItem');
+    }
+
+    public static function canForceDelete(Model $record): bool
+    {
+        return auth()->user()->can('deletePrescriptionItem');
+    }
+
+    public static function canRestore(Model $record): bool
+    {
+        return auth()->user()->can('editPrescriptionItem');
+    }
 }
+
