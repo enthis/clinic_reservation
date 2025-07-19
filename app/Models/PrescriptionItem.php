@@ -18,6 +18,7 @@ class PrescriptionItem extends Model
     protected $fillable = [
         'name',
         'description',
+        'price'
     ];
 
     /**

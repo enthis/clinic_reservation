@@ -14,9 +14,8 @@ return new class extends Migration
         Schema::create('doctor_notes', function (Blueprint $table) {
             $table->id();
             $table->foreignId('reservation_id')->constrained('reservations')->onDelete('cascade');
-            $table->foreignId('prescription_item_id')->constrained('prescription_items')->onDelete('cascade');
-            $table->string('dose');
-            $table->text('notes')->nullable(); // Specific notes for this item in the recipe
+            $table->foreignId('doctor_id')->constrained('doctors')->onDelete('cascade'); // Corrected: Link to doctors table
+            $table->text('note_content'); // Corrected: This column stores the doctor's note content
             $table->timestamps();
             $table->softDeletes();
         });

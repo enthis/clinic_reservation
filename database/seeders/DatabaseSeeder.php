@@ -15,9 +15,16 @@ class DatabaseSeeder extends Seeder
     {
         // User::factory(10)->create();
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        $this->call([
+            UserSeeder::class,
+            ServiceSeeder::class,
+            DoctorSeeder::class, // Doctors depend on Users (if linked)
+            PrescriptionItemSeeder::class,
+            DoctorScheduleSeeder::class, // Schedules depend on Doctors
+            ReservationSeeder::class,    // Reservations depend on Users, Doctors, Services, Schedules
+            RecipeSeeder::class,         // Recipes depend on Reservations and PrescriptionItems
+            DoctorNoteSeeder::class,     // DoctorNotes depend on Reservations and Doctors
+            PaymentGatewayConfigSeeder::class
         ]);
     }
 }

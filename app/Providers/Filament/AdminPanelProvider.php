@@ -53,6 +53,10 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
-            ]);
+            ])
+            ->renderHook(
+                'panels::auth.login.form.after',
+                fn() => view('auth.socialite.google')
+            );
     }
 }

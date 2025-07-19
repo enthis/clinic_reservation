@@ -24,7 +24,6 @@ class Reservation extends Model
         'scheduled_time',
         'status',
         'payment_status',
-        'xendit_invoice_id',
         'payment_amount',
         'approved_by',
         'completed_by',
