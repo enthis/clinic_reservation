@@ -44,7 +44,7 @@ class MidtransService
         Config::$is3ds = true;
 
         // Set Merchant ID (optional, but good for explicit setup)
-        Config::$merchantId = $this->merchantId;
+        // Config::$merchantId = $this->merchantId;
     }
 
     /**
