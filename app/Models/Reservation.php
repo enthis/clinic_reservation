@@ -102,5 +102,13 @@ class Reservation extends Model
     {
         return $this->hasMany(DoctorNote::class);
     }
+
+    /**
+     * Get the payments for the reservation.
+     */
+    public function payments() // Added this relationship
+    {
+        return $this->hasMany(Payment::class);
+    }
 }
 
