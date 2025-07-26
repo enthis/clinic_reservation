@@ -3,16 +3,19 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+
+use Filament\Models\Contracts\FilamentUser;
+use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 
-class User extends Authenticatable
+class User extends Authenticatable implements FilamentUser
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */
-    use HasFactory, Notifiable, SoftDeletes,HasRoles;
+    use HasFactory, Notifiable, SoftDeletes, HasRoles;
 
     /**
      * The attributes that are mass assignable.
@@ -79,5 +82,12 @@ class User extends Authenticatable
     public function completedReservations()
     {
         return $this->hasMany(Reservation::class, 'completed_by');
+    }
+
+    public function canAccessPanel(Panel $panel): bool
+    {
+        // Allow access to the Filament panel if the user has 'admin', 'staff', or 'doctor' role.
+        // You can customize these roles as needed.
+        return $this->hasAnyRole(['admin', 'staff', 'doctor']);
     }
 }
