@@ -161,24 +161,25 @@
 
                 if (data.snap_token) {
                     snap.pay(data.snap_token, {
-                        onSuccess: function(result){
+                         onSuccess: function(result){
                             alert("Payment success!");
                             console.log(result);
-                            window.location.href = "{{ route('midtrans.finish', '') }}/" + reservationId;
+                            // Corrected route generation for finish, unfinish, error
+                            window.location.href = "{{ route('midtrans.finish', ['reservation' => '__RESERVATION_ID__']) }}".replace('__RESERVATION_ID__', reservationId);
                         },
                         onPending: function(result){
                             alert("Waiting for your payment!");
                             console.log(result);
-                            window.location.href = "{{ route('midtrans.unfinish', '') }}/" + reservationId;
+                            window.location.href = "{{ route('midtrans.unfinish', ['reservation' => '__RESERVATION_ID__']) }}".replace('__RESERVATION_ID__', reservationId);
                         },
                         onError: function(result){
                             alert("Payment failed!");
                             console.log(result);
-                            window.location.href = "{{ route('midtrans.error', '') }}/" + reservationId;
+                            window.location.href = "{{ route('midtrans.error', ['reservation' => '__RESERVATION_ID__']) }}".replace('__RESERVATION_ID__', reservationId);
                         },
                         onClose: function(){
                             alert('You closed the popup without finishing the payment');
-                            window.location.href = "{{ route('midtrans.unfinish', '') }}/" + reservationId;
+                            window.location.href = "{{ route('midtrans.unfinish', ['reservation' => '__RESERVATION_ID__']) }}".replace('__RESERVATION_ID__', reservationId);
                         }
                     });
                 } else if (data.error) {
