@@ -12,6 +12,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http; // Import Http facade for making requests
 
 class ReservationForm extends Component
 {
@@ -21,6 +22,7 @@ class ReservationForm extends Component
     public $selectedDayOfWeek;
     public $selectedTimeSlot;
     public $availableTimeSlots = [];
+    public $availableDaysForDoctor = []; // New property to store available days for the selected doctor
 
     public $reservationDetails = [];
 
@@ -39,7 +41,6 @@ class ReservationForm extends Component
         'selectedTimeSlot.exists' => 'The selected time slot is invalid or unavailable.',
     ];
 
-    // Helper array to convert day of week integer to string name
     private $dayNames = [
         0 => 'Sunday',
         1 => 'Monday',
@@ -70,8 +71,22 @@ class ReservationForm extends Component
     {
         $this->selectedDayOfWeek = null;
         $this->selectedTimeSlot = null;
-        $this->availableTimeSlots = [];
+        $this->availableTimeSlots = []; // Clear previous time slots
+        $this->availableDaysForDoctor = []; // Reset available days for doctor
         $this->resetValidation(['selectedDayOfWeek', 'selectedTimeSlot']);
+
+        if ($this->selectedDoctorId) {
+            $rawDays = DoctorSchedule::where('doctor_id', $this->selectedDoctorId)
+                                     ->where('is_available', true)
+                                     ->distinct()
+                                     ->pluck('day_of_week')
+                                     ->toArray();
+
+            // Map integer days to their names for the dropdown
+            foreach ($rawDays as $dayInt) {
+                $this->availableDaysForDoctor[$dayInt] = $this->dayNames[$dayInt];
+            }
+        }
     }
 
     private function loadAvailableTimeSlots()
@@ -116,7 +131,7 @@ class ReservationForm extends Component
             $this->reservationDetails = [
                 'service_name' => $service->name,
                 'doctor_name' => $doctor->name,
-                'day_name' => $this->dayNames[$this->selectedDayOfWeek] ?? 'N/A', // Use day name from helper
+                'day_name' => $this->dayNames[$this->selectedDayOfWeek] ?? 'N/A',
                 'start_time' => Carbon::parse($schedule->start_time)->format('H:i'),
                 'end_time' => Carbon::parse($schedule->end_time)->format('H:i'),
                 'price' => $service->price,
@@ -159,9 +174,8 @@ class ReservationForm extends Component
             }
 
             $today = Carbon::today();
-            // Convert integer day of week to string day name for Carbon::next()
             $dayNameForCarbon = strtolower($this->dayNames[$this->selectedDayOfWeek]);
-            $scheduledDate = $today->copy()->next($dayNameForCarbon); // Corrected line
+            $scheduledDate = $today->copy()->next($dayNameForCarbon);
 
             if (!$schedule->is_available || Reservation::where('schedule_id', $schedule->id)
                                                       ->whereIn('status', ['pending', 'approved'])
@@ -170,6 +184,7 @@ class ReservationForm extends Component
                 return;
             }
 
+            // Create the reservation
             $reservation = Reservation::create([
                 'user_id' => Auth::id(),
                 'doctor_id' => $this->selectedDoctorId,
@@ -182,11 +197,14 @@ class ReservationForm extends Component
                 'payment_amount' => $service->price,
             ]);
 
+            // Mark the schedule as unavailable
             $schedule->update(['is_available' => false]);
 
-            session()->flash('message', 'Reservation created successfully! Please proceed to payment.');
+            session()->flash('message', 'Reservation created successfully! Proceeding to payment...');
 
-            return redirect()->route('reservation.pay.midtrans', $reservation->id);
+            // Emit an event to the frontend to trigger Midtrans popup
+            $this->dispatch('reservationCreated', reservationId: $reservation->id);
+
 
         } catch (\Exception $e) {
             Log::error('Reservation creation failed: ' . $e->getMessage());
@@ -198,9 +216,8 @@ class ReservationForm extends Component
     {
         $services = Service::all();
         $doctors = Doctor::all();
-
-        // Use the internal dayNames array for rendering the select options
-        $daysOfWeekForView = $this->dayNames;
+        // Use the filtered list of days for the view
+        $daysOfWeekForView = $this->availableDaysForDoctor;
 
         return view('livewire.reservation-form', [
             'services' => $services,

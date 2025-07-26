@@ -6,6 +6,7 @@ use App\Filament\Resources\ReservationResource\Pages;
 use App\Filament\Resources\ReservationResource\RelationManagers;
 use App\Models\Reservation;
 use Filament\Forms;
+use Filament\Forms\Components\Card;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -24,72 +25,86 @@ class ReservationResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Select::make('user_id')
-                    ->relationship('user', 'name')
-                    ->required()
-                    ->searchable()
-                    ->preload(),
-                Forms\Components\Select::make('doctor_id')
-                    ->relationship('doctor', 'name')
-                    ->required()
-                    ->searchable()
-                    ->preload(),
-                Forms\Components\Select::make('service_id')
-                    ->relationship('service', 'name')
-                    ->required()
-                    ->searchable()
-                    ->preload(),
-                Forms\Components\Select::make('schedule_id')
-                    ->relationship('schedule', 'date') // Display schedule date, you might want to customize this
-                    ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->date->format('M d, Y')} ({$record->start_time} - {$record->end_time})")
-                    ->required()
-                    ->searchable()
-                    ->preload(),
-                Forms\Components\DatePicker::make('scheduled_date')
-                    ->required()
-                    ->native(false),
-                Forms\Components\TimePicker::make('scheduled_time')
-                    ->required()
-                    ->seconds(false)
-                    ->displayFormat('H:i'),
-                Forms\Components\Select::make('status')
-                    ->options([
-                        'pending' => 'Pending',
-                        'approved' => 'Approved',
-                        'rejected' => 'Rejected',
-                        'completed' => 'Completed',
-                        'cancelled' => 'Cancelled',
-                    ])
-                    ->required()
-                    ->default('pending')
-                    ->native(false),
-                Forms\Components\Select::make('payment_status')
-                    ->options([
-                        'pending' => 'Pending',
-                        'paid' => 'Paid',
-                        'failed' => 'Failed',
-                        'refunded' => 'Refunded',
-                    ])
-                    ->required()
-                    ->default('pending')
-                    ->native(false),
-                Forms\Components\TextInput::make('payment_amount')
-                    ->numeric()
-                    ->required()
-                    ->prefix('Rp')
-                    ->step(0.01),
-                Forms\Components\Select::make('approved_by')
-                    ->relationship('approver', 'name')
-                    ->label('Approved By (Staff)')
-                    ->nullable()
-                    ->searchable()
-                    ->preload(),
-                Forms\Components\Select::make('completed_by')
-                    ->relationship('completer', 'name')
-                    ->label('Completed By (Staff)')
-                    ->nullable()
-                    ->searchable()
-                    ->preload(),
+                Forms\Components\Section::make('Reservation Details')
+                    ->description('Basic information about the reservation.')
+                    ->schema([
+                        Forms\Components\Select::make('user_id')
+                            ->relationship('user', 'name')
+                            ->required()
+                            ->searchable()
+                            ->preload(),
+                        Forms\Components\Select::make('doctor_id')
+                            ->relationship('doctor', 'name')
+                            ->required()
+                            ->searchable()
+                            ->preload(),
+                        Forms\Components\Select::make('service_id')
+                            ->relationship('service', 'name')
+                            ->required()
+                            ->searchable()
+                            ->preload(),
+                    ])->columns(3), // Arrange these three fields in 3 columns
+
+                Forms\Components\Section::make('Schedule Information')
+                    ->description('Details about the selected time slot.')
+                    ->schema([
+                        Forms\Components\Select::make('schedule_id')
+                            ->relationship('schedule', 'day_of_week')
+                            ->getOptionLabelFromRecordUsing(fn($record) => "{$record->day_name} ({$record->start_time} - {$record->end_time})")
+                            ->required()
+                            ->searchable()
+                            ->preload(),
+                        Forms\Components\DatePicker::make('scheduled_date')
+                            ->required()
+                            ->native(false),
+                        Forms\Components\TimePicker::make('scheduled_time')
+                            ->required()
+                            ->seconds(false)
+                            ->displayFormat('H:i'),
+                    ])->columns(3), // Arrange these three fields in 3 columns
+
+                Forms\Components\Section::make('Status & Payment')
+                    ->description('Manage reservation and payment statuses.')
+                    ->schema([
+                        Forms\Components\Select::make('status')
+                            ->options([
+                                'pending' => 'Pending',
+                                'approved' => 'Approved',
+                                'rejected' => 'Rejected',
+                                'completed' => 'Completed',
+                                'cancelled' => 'Cancelled',
+                            ])
+                            ->required()
+                            ->default('pending')
+                            ->native(false),
+                        Forms\Components\Select::make('payment_status')
+                            ->options([
+                                'pending' => 'Pending',
+                                'paid' => 'Paid',
+                                'failed' => 'Failed',
+                                'refunded' => 'Refunded',
+                            ])
+                            ->required()
+                            ->default('pending')
+                            ->native(false),
+                        Forms\Components\TextInput::make('payment_amount')
+                            ->numeric()
+                            ->required()
+                            ->prefix('Rp')
+                            ->step(0.01),
+                        Forms\Components\Select::make('approved_by')
+                            ->relationship('approver', 'name')
+                            ->label('Approved By (Staff)')
+                            ->nullable()
+                            ->searchable()
+                            ->preload(),
+                        Forms\Components\Select::make('completed_by')
+                            ->relationship('completer', 'name')
+                            ->label('Completed By (Staff)')
+                            ->nullable()
+                            ->searchable()
+                            ->preload(),
+                    ])->columns(2), // Arrange these fields in 2 columns
             ]);
     }
 
@@ -114,7 +129,7 @@ class ReservationResource extends Resource
                     ->sortable(),
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'pending' => 'warning',
                         'approved' => 'success',
                         'rejected' => 'danger',
@@ -124,7 +139,7 @@ class ReservationResource extends Resource
                     ->searchable(),
                 Tables\Columns\TextColumn::make('payment_status')
                     ->badge()
-                    ->color(fn (string $state): string => match ($state) {
+                    ->color(fn(string $state): string => match ($state) {
                         'pending' => 'warning',
                         'paid' => 'success',
                         'failed' => 'danger',
@@ -193,7 +208,7 @@ class ReservationResource extends Resource
                     ->label('Approve')
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
-                    ->visible(fn (Reservation $record): bool => $record->status === 'pending' && auth()->user()->can('approveReservations'))
+                    ->visible(fn(Reservation $record): bool => $record->status === 'pending' && auth()->user()->can('approveReservations'))
                     ->action(function (Reservation $record) {
                         $record->update(['status' => 'approved', 'approved_by' => auth()->id()]);
                         \Filament\Notifications\Notification::make()
@@ -205,7 +220,7 @@ class ReservationResource extends Resource
                     ->label('Complete')
                     ->icon('heroicon-o-clipboard-document-check')
                     ->color('info')
-                    ->visible(fn (Reservation $record): bool => $record->status === 'approved' && auth()->user()->can('completeReservations'))
+                    ->visible(fn(Reservation $record): bool => $record->status === 'approved' && auth()->user()->can('completeReservations'))
                     ->action(function (Reservation $record) {
                         $record->update(['status' => 'completed', 'completed_by' => auth()->id()]);
                         \Filament\Notifications\Notification::make()
@@ -283,8 +298,8 @@ class ReservationResource extends Resource
     {
         // Staff can edit any. Doctors can edit their own. Users can edit their own (e.g., cancel)
         return auth()->user()->can('editReservation') ||
-               (auth()->user()->hasRole('doctor') && $record->doctor_id === auth()->user()->doctor->id) ||
-               (auth()->user()->hasRole('user') && $record->user_id === auth()->id());
+            (auth()->user()->hasRole('doctor') && $record->doctor_id === auth()->user()->doctor->id) ||
+            (auth()->user()->hasRole('user') && $record->user_id === auth()->id());
     }
 
     public static function canDelete(Model $record): bool
@@ -303,4 +318,3 @@ class ReservationResource extends Resource
         return auth()->user()->can('editReservation');
     }
 }
-

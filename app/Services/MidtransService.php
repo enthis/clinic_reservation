@@ -5,6 +5,7 @@ namespace App\Services;
 use Midtrans\Config;
 use Midtrans\Snap;
 use Midtrans\Notification;
+use Midtrans\CoreApi; // Import CoreApi
 use App\Models\PaymentGatewayConfig;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Log;
@@ -42,27 +43,57 @@ class MidtransService
         Config::$isProduction = $this->isProduction;
         Config::$isSanitized = true;
         Config::$is3ds = true;
-
-        // Set Merchant ID (optional, but good for explicit setup)
-        // Config::$merchantId = $this->merchantId;
     }
 
     /**
-     * Get Snap redirect URL for payment.
+     * Get Snap Token for payment popup.
      *
      * @param array $params Transaction details
-     * @return string|null Snap redirect URL or null on failure
+     * @return string|null Snap Token or null on failure
      */
-    public function getSnapRedirectUrl(array $params)
+    public function getSnapToken(array $params) // This is the method in question
     {
         try {
             $snapToken = Snap::getSnapToken($params);
-            return 'https://app.midtrans.com/snap/v1/pay/' . $snapToken;
+            return $snapToken;
         } catch (\Exception $e) {
             Log::error('Midtrans Snap Error: ' . $e->getMessage(), ['params' => $params]);
             return null;
         }
     }
+
+    /**
+     * Initiate a QRIS transaction and get its details.
+     *
+     * @param array $params Transaction details for QRIS
+     * @return object|null Transaction response object or null on failure
+     */
+    public function getQrisTransactionDetails(array $params)
+    {
+        try {
+            $params['payment_type'] = 'qris';
+            if (!isset($params['qris'])) {
+                $params['qris'] = ['acquirer_id' => 'GOPAY'];
+            }
+
+            $chargeResponse = CoreApi::charge($params);
+
+            if (isset($chargeResponse->actions) && is_array($chargeResponse->actions)) {
+                foreach ($chargeResponse->actions as $action) {
+                    if ($action->name === 'generate-qr-code' && isset($action->url)) {
+                        $chargeResponse->qr_code_url = $action->url;
+                        break;
+                    }
+                }
+            }
+
+            return $chargeResponse;
+        } catch (\Exception $e) {
+            Log::error('Midtrans QRIS Error: ' . $e->getMessage(), ['params' => $params]);
+            return null;
+        }
+    }
+
 
     /**
      * Get Midtrans notification handler.
