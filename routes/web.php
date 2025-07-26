@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 // routes/web.php
 use App\Http\Controllers\Auth\GoogleAuthController;
 use App\Http\Controllers\MidtransPaymentController;
+use App\Models\Reservation;
 use Illuminate\Support\Facades\Auth;
 
 Route::get('/', function () {
@@ -16,14 +17,17 @@ Route::get('/auth/google/callback', [GoogleAuthController::class, 'handleGoogleC
 Route::get('/login', function () {
     return redirect()->route('filament.admin.auth.login');
 })->name('login');
-Route::get('/dashboard', function () {
-    return redirect()->route('filament.admin.pages.dashboard');
-})->name('dashboard');
+// Route::get('/dashboard', function () {
+//     return redirect()->route('filament.admin.pages.dashboard');
+// })->name('dashboard');
 
 // User Dashboard/Profile and Logout
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', function () {
-        return view('dashboard');
+        // Fetch reservations for the authenticated user
+        $user = Auth::user();
+        $reservations = $user->reservations()->with(['service', 'doctor'])->orderByDesc('scheduled_date')->get();
+        return view('dashboard', compact('reservations'));
     })->name('dashboard');
 
     // Logout Route
@@ -33,6 +37,14 @@ Route::middleware(['auth'])->group(function () {
         request()->session()->regenerateToken(); // Regenerate CSRF token
         return redirect('/'); // Redirect to landing page after logout
     })->name('logout');
+    // Route to show a single reservation (for user to view their own)
+    Route::get('/reservations/{reservation}', function (Reservation $reservation) {
+        // Basic authorization: ensure user owns the reservation or is admin/staff/doctor
+        if (Auth::id() === $reservation->user_id || Auth::user()->hasAnyRole(['admin', 'staff', 'doctor'])) {
+            return view('reservations.show', compact('reservation'));
+        }
+        abort(403); // Forbidden
+    })->name('reservations.show');
 });
 
 

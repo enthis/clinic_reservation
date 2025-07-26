@@ -15,22 +15,22 @@
 
     <div class="mb-6">
         <div class="flex justify-between items-center text-sm font-medium text-gray-500">
-            <div class="{{ $currentStep >= 1 ? 'text-blue-600' : '' }}">
+            <div class="{{ $currentStep >= 1 ? 'text-blue-600' : 'text-gray-500' }}"> {{-- Corrected line 84 --}}
                 <span class="block text-center text-lg font-semibold">1</span>
                 Service
             </div>
             <div class="flex-1 border-t-2 {{ $currentStep >= 2 ? 'border-blue-600' : 'border-gray-300' }} mx-2"></div>
-            <div class="{{ $currentStep >= 2 ? 'text-blue-600' : '' }}">
+            <div class="{{ $currentStep >= 2 ? 'text-blue-600' : 'text-gray-500' }}">
                 <span class="block text-center text-lg font-semibold">2</span>
                 Doctor
             </div>
             <div class="flex-1 border-t-2 {{ $currentStep >= 3 ? 'border-blue-600' : 'border-gray-300' }} mx-2"></div>
-            <div class="{{ $currentStep >= 3 ? 'text-blue-600' : '' }}">
+            <div class="{{ $currentStep >= 3 ? 'text-blue-600' : 'text-gray-500' }}">
                 <span class="block text-center text-lg font-semibold">3</span>
                 Schedule
             </div>
             <div class="flex-1 border-t-2 {{ $currentStep >= 4 ? 'border-blue-600' : 'border-gray-300' }} mx-2"></div>
-            <div class="text-gray-500 {{ $currentStep >= 4 ? 'text-blue-600' : '' }}">
+            <div class="text-gray-500 {{ $currentStep >= 4 ? 'text-blue-600' : 'text-gray-500' }}">
                 <span class="block text-center text-lg font-semibold">4</span>
                 Confirm
             </div>
@@ -158,4 +158,3 @@
         </div>
     </form>
 </div>
-
