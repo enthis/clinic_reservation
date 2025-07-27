@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -10,8 +11,10 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6; /* Light gray background */
+            background-color: #f3f4f6;
+            /* Light gray background */
         }
+
         .container {
             max-width: 960px;
         }
@@ -19,22 +22,28 @@
     @livewireStyles
     <!-- SweetAlert2 JS -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Midtrans Snap JS -->
+    <script type="text/javascript"
+        src="https://app.sandbox.midtrans.com/snap/snap.js"
+        data-client-key="{{ config('services.midtrans.client_key') }}">
+    </script>
 </head>
+
 <body class="antialiased flex flex-col min-h-screen">
     <header class="bg-white shadow-sm py-4">
         <div class="container mx-auto px-4 flex justify-between items-center">
             <a href="{{ route('landing') }}" class="text-2xl font-bold text-gray-800">Clinic Reservation</a>
             <nav>
                 @auth
-                    <span class="text-gray-700 mr-4">Welcome, {{ Auth::user()->name }}!</span>
-                    <a href="{{ route('dashboard') }}" class="text-blue-600 hover:text-blue-800 mr-4">Dashboard</a>
-                    <form action="{{ route('logout') }}" method="POST" class="inline">
-                        @csrf
-                        <button type="submit" class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition duration-300">Logout</button>
-                    </form>
+                <span class="text-gray-700 mr-4">Welcome, {{ Auth::user()->name }}!</span>
+                <a href="{{ route('dashboard') }}" class="text-blue-600 hover:text-blue-800 mr-4">Dashboard</a>
+                <form action="{{ route('logout') }}" method="POST" class="inline">
+                    @csrf
+                    <button type="submit" class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition duration-300">Logout</button>
+                </form>
                 @else
-                    {{-- Navigation for unauthenticated users --}}
-                    {{-- The login forms are now directly in the main content area --}}
+                {{-- Navigation for unauthenticated users --}}
+                {{-- The login forms are now directly in the main content area --}}
                 @endauth
             </nav>
         </div>
@@ -49,62 +58,59 @@
             </p>
 
             @auth
-                <p class="text-xl text-gray-800 mb-6">You are logged in. Ready to make a reservation?</p>
-                {{-- This is where we'll integrate the Livewire reservation component --}}
-                <div class="mt-8">
-                    @livewire('reservation-form')
-                </div>
+            <p class="text-xl text-gray-800 mb-6">You are logged in. Ready to make a reservation?</p>
+            {{-- This is where we'll integrate the Livewire reservation component --}}
+            <div class="mt-8">
+                @livewire('reservation-form')
+            </div>
             @else
-                <p class="text-xl text-gray-800 mb-6">Please log in to start your reservation.</p>
+            <p class="text-xl text-gray-800 mb-6">Please log in to start your reservation.</p>
 
-                <div class="flex flex-col md:flex-row justify-center items-center gap-6 mt-8">
-                    {{-- Google Login Button --}}
-                    <a href="{{ route('auth.google') }}" class="inline-flex items-center justify-center px-8 py-4 border border-gray-300 text-base font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 transition duration-300 transform hover:scale-105">
-                        <svg class="w-6 h-6 mr-3" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M12.0003 4.75C14.0273 4.75 15.8013 5.486 17.1403 6.782L20.0003 3.922C18.0213 2.057 15.2453 1 12.0003 1C7.75732 1 4.00832 3.472 2.38632 7.014L5.61732 9.549C6.46032 7.318 9.07032 5.75 12.0003 5.75V4.75Z" fill="#EA4335"/>
-                            <path d="M23.0003 12.0003C23.0003 11.3463 22.9463 10.7043 22.8423 10.0773H12.0003V13.9233H18.7293C18.4323 15.6553 17.4133 17.1123 15.9393 18.0793L19.1713 20.6133C21.0163 18.8123 22.1803 16.5053 22.6503 14.0003C22.8423 13.3733 23.0003 12.7043 23.0003 12.0003Z" fill="#4285F4"/>
-                            <path d="M5.61732 14.451L2.38632 16.986C3.47032 19.217 5.75732 21 8.50032 21C11.6603 21 14.3393 19.897 16.1703 17.942L12.9393 15.408C12.0963 17.639 9.48632 19.207 6.55632 19.207C5.61732 19.207 4.73332 19.012 3.93932 18.65L5.61732 14.451Z" fill="#FBBC05"/>
-                            <path d="M12.0003 19.207C9.07032 19.207 6.46032 17.639 5.61732 15.408L2.38632 17.942C4.00832 21.484 7.75732 23.957 12.0003 23.957C15.2453 23.957 18.0213 22.9 20.0003 21.035L17.1403 18.175C15.8013 19.471 14.0273 20.207 12.0003 20.207V19.207Z" fill="#34A853"/>
-                        </svg>
-                        Login with Google
-                    </a>
+            <div class="flex flex-col md:flex-row justify-center items-center gap-6 mt-8">
+                {{-- Google Login Button --}}
+                <a href="{{ route('auth.google') }}" class="inline-flex items-center justify-center px-8 py-4 border border-gray-300 text-base font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 transition duration-300 transform hover:scale-105">
+                    <svg class="w-6 h-6 mr-3" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12.0003 4.75C14.0273 4.75 15.8013 5.486 17.1403 6.782L20.0003 3.922C18.0213 2.057 15.2453 1 12.0003 1C7.75732 1 4.00832 3.472 2.38632 7.014L5.61732 9.549C6.46032 7.318 9.07032 5.75 12.0003 5.75V4.75Z" fill="#EA4335" />
+                        <path d="M23.0003 12.0003C23.0003 11.3463 22.9463 10.7043 22.8423 10.0773H12.0003V13.9233H18.7293C18.4323 15.6553 17.4133 17.1123 15.9393 18.0793L19.1713 20.6133C21.0163 18.8123 22.1803 16.5053 22.6503 14.0003C22.8423 13.3733 23.0003 12.7043 23.0003 12.0003Z" fill="#4285F4" />
+                        <path d="M5.61732 14.451L2.38632 16.986C3.47032 19.217 5.75732 21 8.50032 21C11.6603 21 14.3393 19.897 16.1703 17.942L12.9393 15.408C12.0963 17.639 9.48632 19.207 6.55632 19.207C5.61732 19.207 4.73332 19.012 3.93932 18.65L5.61732 14.451Z" fill="#FBBC05" />
+                        <path d="M12.0003 19.207C9.07032 19.207 6.46032 17.639 5.61732 15.408L2.38632 17.942C4.00832 21.484 7.75732 23.957 12.0003 23.957C15.2453 23.957 18.0213 22.9 20.0003 21.035L17.1403 18.175C15.8013 19.471 14.0273 20.207 12.0003 20.207V19.207Z" fill="#34A853" />
+                    </svg>
+                    Login with Google
+                </a>
 
-                    <div class="text-gray-500 font-semibold">OR</div>
+                <div class="text-gray-500 font-semibold">OR</div>
 
-                    {{-- API Login Form --}}
-                    <div id="api-login-form" class="bg-gray-50 p-6 rounded-lg shadow-inner flex-1 max-w-xs">
-                        <h2 class="text-xl font-bold text-gray-800 mb-4">Login with Email</h2>
-                        <form id="apiLoginForm" onsubmit="handleApiLogin(event)">
-                            @csrf
-                            <div class="mb-4 text-left">
-                                <label for="api_email" class="block text-sm font-medium text-gray-700">Email Address</label>
-                                <input
-                                    type="email"
-                                    id="api_email"
-                                    name="email"
-                                    required
-                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                >
-                            </div>
-                            <div class="mb-6 text-left">
-                                <label for="api_password" class="block text-sm font-medium text-gray-700">Password</label>
-                                <input
-                                    type="password"
-                                    id="api_password"
-                                    name="password"
-                                    required
-                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                                >
-                            </div>
-                            <button
-                                type="submit"
-                                class="w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition duration-300"
-                            >
-                                Login
-                            </button>
-                        </form>
-                    </div>
+                {{-- API Login Form --}}
+                <div id="api-login-form" class="bg-gray-50 p-6 rounded-lg shadow-inner flex-1 max-w-xs">
+                    <h2 class="text-xl font-bold text-gray-800 mb-4">Login with Email</h2>
+                    <form id="apiLoginForm" onsubmit="handleApiLogin(event)">
+                        @csrf
+                        <div class="mb-4 text-left">
+                            <label for="api_email" class="block text-sm font-medium text-gray-700">Email Address</label>
+                            <input
+                                type="email"
+                                id="api_email"
+                                name="email"
+                                required
+                                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
+                        <div class="mb-6 text-left">
+                            <label for="api_password" class="block text-sm font-medium text-gray-700">Password</label>
+                            <input
+                                type="password"
+                                id="api_password"
+                                name="password"
+                                required
+                                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
+                        <button
+                            type="submit"
+                            class="w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition duration-300">
+                            Login
+                        </button>
+                    </form>
                 </div>
+            </div>
             @endauth
         </div>
     </main>
@@ -116,18 +122,15 @@
     </footer>
 
     @livewireScripts
-    <!-- SweetAlert2 JS -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
     <script type="text/javascript">
-        // Function to handle API login
+        // Function to handle API login (already present)
         async function handleApiLogin(event) {
             event.preventDefault(); // Prevent default form submission
 
             const form = event.target;
             const email = form.api_email.value;
             const password = form.api_password.value;
-            const csrfToken = form._token.value; // Get CSRF token from the form
+            const csrfToken = form._token.value;
 
             try {
                 const response = await fetch('/api/login', {
@@ -135,9 +138,12 @@
                     headers: {
                         'Content-Type': 'application/json',
                         'Accept': 'application/json',
-                        'X-CSRF-TOKEN': csrfToken // Include CSRF token
+                        'X-CSRF-TOKEN': csrfToken
                     },
-                    body: JSON.stringify({ email, password })
+                    body: JSON.stringify({
+                        email,
+                        password
+                    })
                 });
 
                 const data = await response.json();
@@ -150,10 +156,9 @@
                         showConfirmButton: false,
                         timer: 1500
                     }).then(() => {
-                        window.location.href = '{{ route('dashboard') }}'; // Redirect to dashboard
+                        window.location.href = '{{ route('dashboard') }}';
                     });
                 } else {
-                    // API login failed
                     const errorMessage = data.message || (data.errors ? Object.values(data.errors).flat().join('\n') : 'Login failed. Please check your credentials.');
                     Swal.fire({
                         icon: 'error',
@@ -170,6 +175,131 @@
                 });
             }
         }
+
+        // Livewire event listener to trigger Midtrans payment
+        Livewire.on('reservationCreated', async (event) => {
+            console.log('Livewire event "reservationCreated" received.');
+            // Ensure event.detail exists and contains reservationId
+            const reservationId = event.reservationId || (event.detail && event.detail.reservationId);
+
+            if (!reservationId) {
+                console.error('reservationId not found in Livewire event:', event);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Payment Error',
+                    text: 'Could not get reservation ID to initiate payment. Please try again.',
+                });
+                return;
+            }
+
+            console.log('Initiating Midtrans payment for Reservation ID:', reservationId);
+
+            // Retrieve the API token from the session (passed from backend)
+            const API_TOKEN = "{{ session('api_token') }}";
+
+            const headers = {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+            };
+
+            // Add Authorization header if API_TOKEN is available
+            if (API_TOKEN) {
+                headers['Authorization'] = `Bearer ${API_TOKEN}`;
+                console.log('Using Bearer Token for API call.');
+            } else {
+                // Fallback for session-based CSRF token if API_TOKEN is not used (e.g., if user logged in via API form)
+                headers['X-CSRF-TOKEN'] = '{{ csrf_token() }}';
+                console.log('Using X-CSRF-TOKEN for API call.');
+            }
+
+            try {
+                const response = await fetch(`/api/reservation/${reservationId}/pay-midtrans`, {
+                    method: 'POST',
+                    headers: headers
+                });
+                const data = await response.json();
+
+                console.log('API response for Snap Token:', response.status, data);
+
+                if (response.ok) { // Check if response status is 2xx
+                    if (data.snap_token) {
+                        console.log('Snap Token received:', data.snap_token);
+                        snap.pay(data.snap_token, {
+                            onSuccess: function(result) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Payment Success!',
+                                    text: 'Your payment was successfully processed.',
+                                    showConfirmButton: false,
+                                    timer: 2000
+                                }).then(() => {
+                                    window.location.href = "{{ route('midtrans.finish', ['reservation' => '__RESERVATION_ID__']) }}".replace('__RESERVATION_ID__', reservationId);
+                                });
+                            },
+                            onPending: function(result) {
+                                Swal.fire({
+                                    icon: 'info',
+                                    title: 'Payment Pending!',
+                                    text: 'Waiting for your payment to be completed.',
+                                    showConfirmButton: false,
+                                    timer: 2000
+                                }).then(() => {
+                                    window.location.href = "{{ route('midtrans.unfinish', ['reservation' => '__RESERVATION_ID__']) }}".replace('__RESERVATION_ID__', reservationId);
+                                });
+                            },
+                            onError: function(result) {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Payment Failed!',
+                                    text: 'There was an issue with your payment. Please try again.',
+                                    showConfirmButton: false,
+                                    timer: 2000
+                                }).then(() => {
+                                    window.location.href = "{{ route('midtrans.error', ['reservation' => '__RESERVATION_ID__']) }}".replace('__RESERVATION_ID__', reservationId);
+                                });
+                            },
+                            onClose: function() {
+                                Swal.fire({
+                                    icon: 'warning',
+                                    title: 'Payment Canceled!',
+                                    text: 'You closed the payment popup without completing the payment.',
+                                    showConfirmButton: false,
+                                    timer: 2000
+                                }).then(() => {
+                                    window.location.href = "{{ route('midtrans.unfinish', ['reservation' => '__RESERVATION_ID__']) }}".replace('__RESERVATION_ID__', reservationId);
+                                });
+                            }
+                        });
+                    } else if (data.error) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Payment Error',
+                            text: 'Payment initiation failed: ' + data.error,
+                        });
+                    } else if (data.info) {
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'Information',
+                            text: data.info,
+                        });
+                    }
+                } else { // Handle non-2xx responses (e.g., 401, 403, 500)
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'API Error (' + response.status + ')',
+                        text: data.message || 'An unexpected error occurred.',
+                    });
+                }
+            } catch (error) {
+                console.error('Error fetching Snap Token:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'System Error',
+                    text: 'An error occurred while preparing payment. Please try again.',
+                });
+            }
+        });
     </script>
 </body>
+
 </html>

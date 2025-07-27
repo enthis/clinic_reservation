@@ -225,7 +225,7 @@ class MidtransPaymentController extends Controller
             return redirect()->route('dashboard')->with('success', 'Payment successful! Your reservation is confirmed.');
         } else {
             Log::warning('Redirect: Finish - Payment status not successful for Order ID: ' . $orderId . '. Status: ' . ($payment ? $payment->transaction_status : 'unknown'));
-            return redirect()->route('dashboard')->with('warning', 'Payment status: ' . ($payment ? $payment->transaction_status : 'unknown') . '. Please check your reservation details.');
+            return redirect()->route('dashboard')->with('warning', 'Payment status: ' . ($payment ? $payment->transaction_status : 'Pending') . '. Please check your reservation details.');
         }
     }
 

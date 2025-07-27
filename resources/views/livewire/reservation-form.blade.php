@@ -15,7 +15,7 @@
 
     <div class="mb-6">
         <div class="flex justify-between items-center text-sm font-medium text-gray-500">
-            <div class="{{ $currentStep >= 1 ? 'text-blue-600' : 'text-gray-500' }}"> {{-- Corrected line 84 --}}
+            <div class="{{ $currentStep >= 1 ? 'text-blue-600' : 'text-gray-500' }}">
                 <span class="block text-center text-lg font-semibold">1</span>
                 Service
             </div>
@@ -84,6 +84,7 @@
                     class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md shadow-sm"
                 >
                     <option value="">-- Select a Day --</option>
+                    {{-- Use the filtered daysOfWeek passed from the component --}}
                     @foreach ($daysOfWeek as $value => $label)
                         <option value="{{ $value }}">{{ $label }}</option>
                     @endforeach
