@@ -12,6 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('payments', function (Blueprint $table) {
+            $table->id();
             $table->foreignId('reservation_id')->constrained('reservations')->onDelete('cascade');
             $table->string('gateway_transaction_id')->nullable()->unique()->comment('Transaction ID from the payment gateway (e.g., Midtrans ID, QRIS reference)');
             $table->string('order_id')->unique()->comment('Your internal order ID (can be same as reservation_id or a unique string)');
