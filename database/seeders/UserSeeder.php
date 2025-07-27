@@ -93,14 +93,10 @@ class UserSeeder extends Seeder
 
         // Doctor: Can view their own reservations, input recipes and notes, view patients
         $doctorPermissions = [
-            'viewAnyReservation', 'viewReservation', // Can view all reservations to find their own
-            'editReservation', // To update reservation status if needed (e.g., consultation started)
-            'viewAnyRecipe', 'viewRecipe', 'createRecipe', 'editRecipe', 'deleteRecipe', // Doctors manage recipes
-            'viewAnyDoctorNote', 'viewDoctorNote', 'createDoctorNote', 'editDoctorNote', 'deleteDoctorNote', // Doctors manage notes
-            'viewAllPatients', // For viewing patients they handle
+            'viewReservation', // Can view all reservations to find their own
             'viewOwnReservations', // Specific permission for user journey
-            'inputRecipe', // Alias for create/edit recipe
-            'inputDoctorNote', // Alias for create/edit doctor note
+            'createRecipe', // Alias for create/edit recipe
+            'createDoctorNote', // Alias for create/edit doctor note
             'viewOwnRecipes', // Specific permission for user journey
             'viewOwnDoctorNotes', // Specific permission for user journey
         ];
@@ -184,9 +180,9 @@ class UserSeeder extends Seeder
         $regularUser->assignRole('user');
 
         // Create 10 additional random users and assign 'user' role
-        User::factory()->count(10)->create()->each(function ($user) {
-            $user->assignRole('user');
-        });
+        // User::factory()->count(10)->create()->each(function ($user) {
+        //     $user->assignRole('user');
+        // });
     }
 }
 

@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\UserResource\Pages;
 use App\Filament\Resources\UserResource\RelationManagers;
+use App\Models\Doctor;
 use App\Models\User;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -14,6 +15,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Hash; // For password hashing
 use Illuminate\Database\Eloquent\Model; // Import Model
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Session;
 
 class UserResource extends Resource
 {
@@ -38,9 +41,9 @@ class UserResource extends Resource
                     ->nullable(),
                 Forms\Components\TextInput::make('password')
                     ->password()
-                    ->dehydrateStateUsing(fn (string $state): string => Hash::make($state))
-                    ->dehydrated(fn (?string $state): bool => filled($state))
-                    ->required(fn (string $operation): bool => $operation === 'create')
+                    ->dehydrateStateUsing(fn(string $state): string => Hash::make($state))
+                    ->dehydrated(fn(?string $state): bool => filled($state))
+                    ->required(fn(string $operation): bool => $operation === 'create')
                     ->maxLength(255),
                 Forms\Components\Select::make('roles')
                     ->multiple()
@@ -84,17 +87,50 @@ class UserResource extends Resource
             ])
             ->filters([
                 Tables\Filters\TrashedFilter::make(),
+                
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
-                Tables\Actions\ForceDeleteAction::make(),
                 Tables\Actions\RestoreAction::make(),
+                Tables\Actions\Action::make('loginAsUser') // New action
+                    ->label('Login as User')
+                    ->icon('heroicon-o-arrow-right-start-on-rectangle')
+                    ->color('info')
+                    ->visible(function (Model $record): bool {
+                        // Only show if the current authenticated user is an admin
+                        // and they are not trying to log in as themselves
+                        return auth()->user()->hasRole('admin') && auth()->id() !== $record->id;
+                    })
+                    ->action(function (User $record) {
+                        // Store the current admin's ID in session for returning later
+                        Session::put('admin_id_before_login_as', Auth::id());
+
+                        // Log out the current admin
+                        Auth::logout();
+                        Session::invalidate();
+                        Session::regenerateToken();
+
+                        // Log in as the target user
+                        Auth::login($record);
+                        Session::regenerate(true);
+
+                        // Generate a new API token for the impersonated user and store in session
+                        $token = $record->createToken('impersonation-token')->plainTextToken;
+                        Session::put('api_token', $token);
+
+                        \Filament\Notifications\Notification::make()
+                            ->title('Logged in as ' . $record->name)
+                            ->success()
+                            ->send();
+
+                        // Redirect to the dashboard or a specific user-facing page
+                        return redirect()->route('filament.admin.auth.login');
+                    })
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
-                    Tables\Actions\ForceDeleteBulkAction::make(),
                     Tables\Actions\RestoreBulkAction::make(),
                 ]),
             ]);
@@ -155,4 +191,3 @@ class UserResource extends Resource
         return auth()->user()->can('editUser'); // Often restore is covered by edit permission
     }
 }
-

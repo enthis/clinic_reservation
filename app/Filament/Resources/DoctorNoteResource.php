@@ -11,8 +11,9 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Database\Eloquent\Model; // Import Model
+use Illuminate\Support\Facades\Auth; // Import Auth facade
 
 class DoctorNoteResource extends Resource
 {
@@ -26,15 +27,31 @@ class DoctorNoteResource extends Resource
             ->schema([
                 Forms\Components\Select::make('reservation_id')
                     ->relationship('reservation', 'id')
-                    ->getOptionLabelFromRecordUsing(fn($record) => "Reservation #{$record->id} - {$record->user->name} ({$record->scheduled_date->format('M d, Y')})")
+                    // Updated: Display reservation ID, customer name, and scheduled date
+                    ->getOptionLabelFromRecordUsing(fn ($record) => "Reservation #{$record->id} - {$record->user->name} ({$record->scheduled_date->format('M d, Y')})")
                     ->required()
                     ->searchable()
-                    ->preload(),
+                    ->preload()
+                    // Disable if the authenticated user is a doctor (cannot change reservation)
+                    ->disabled(fn (): bool => Auth::user()->hasRole('doctor')),
                 Forms\Components\Select::make('doctor_id')
                     ->relationship('doctor', 'name')
                     ->required()
                     ->searchable()
-                    ->preload(),
+                    ->preload()
+                    // New logic: Disable if the authenticated user is a doctor
+                    ->disabled(function (): bool {
+                        return Auth::user()->hasRole('doctor');
+                    })
+                    // Optionally, set default to the logged-in doctor's ID if they are a doctor
+                    ->default(function (): ?int {
+                        $user = auth()->user(); // Use auth()->user() for consistency
+                        if ($user->hasRole('doctor') && $user->doctor) {
+                            return $user->doctor->id;
+                        }
+                        return null;
+                    })
+                    ->dehydrated(true), // Ensure the value is always sent to the database
                 Forms\Components\Textarea::make('note_content')
                     ->required()
                     ->maxLength(65535),
@@ -44,21 +61,27 @@ class DoctorNoteResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->recordTitleAttribute('note_content')
             ->columns([
                 Tables\Columns\TextColumn::make('reservation.id')
                     ->label('Reservation ID')
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('reservation.user.name')
+                Tables\Columns\TextColumn::make('reservation.user.name') // Display Patient Name
                     ->label('Patient Name')
                     ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('reservation.scheduled_date') // Display Reservation Date
+                    ->label('Reservation Date')
+                    ->date()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('doctor.name')
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('note_content')
                     ->limit(70)
-                    ->wrap(),
+                    ->wrap()
+                    ->placeholder('No notes'),
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -74,26 +97,33 @@ class DoctorNoteResource extends Resource
             ])
             ->filters([
                 Tables\Filters\TrashedFilter::make(),
-                Tables\Filters\SelectFilter::make('reservation_id')
-                    ->relationship('reservation', 'id')
-                    ->label('Filter by Reservation'),
                 Tables\Filters\SelectFilter::make('doctor_id')
                     ->relationship('doctor', 'name')
-                    ->label('Filter by Doctor'),
+                    ->label('Filter by Doctor')
+                    // Make filter visible only if the user is NOT a doctor, or if they have 'viewAnyDoctorNote' permission
+                    ->visible(fn (): bool => !Auth::user()->hasRole('doctor') || Auth::user()->can('viewAnyDoctorNote')),
             ])
             ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
-                Tables\Actions\ForceDeleteAction::make(),
-                Tables\Actions\RestoreAction::make(),
+                Tables\Actions\EditAction::make()
+                    ->visible(fn (Model $record): bool => auth()->user()->can('editDoctorNote')),
+                Tables\Actions\DeleteAction::make()
+                    ->visible(fn (Model $record): bool => auth()->user()->can('deleteDoctorNote')),
+                Tables\Actions\RestoreAction::make()
+                    ->visible(fn (Model $record): bool => auth()->user()->can('editDoctorNote')),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                    Tables\Actions\ForceDeleteBulkAction::make(),
-                    Tables\Actions\RestoreBulkAction::make(),
+                    Tables\Actions\DeleteBulkAction::make()
+                        ->visible(fn (): bool => auth()->user()->can('deleteDoctorNote')),
+                    Tables\Actions\ForceDeleteBulkAction::make()
+                        ->visible(fn (): bool => auth()->user()->can('deleteDoctorNote')),
+                    Tables\Actions\RestoreBulkAction::make()
+                        ->visible(fn (): bool => auth()->user()->can('editDoctorNote')),
                 ]),
-            ]);
+            ])
+            ->modifyQueryUsing(fn (Builder $query) => $query->withoutGlobalScopes([
+                SoftDeletingScope::class,
+            ]));
     }
 
     public static function getRelations(): array
@@ -114,7 +144,7 @@ class DoctorNoteResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        // Doctors can only see/manage notes for their own reservations
+        // For doctors, only show notes created by them
         if (auth()->user()->hasRole('doctor') && !auth()->user()->can('viewAnyDoctorNote')) {
             return parent::getEloquentQuery()
                 ->where('doctor_id', auth()->user()->doctor->id)
@@ -122,10 +152,11 @@ class DoctorNoteResource extends Resource
                     SoftDeletingScope::class,
                 ]);
         }
-        // Users can only see their own notes
+
+        // For regular users, only show notes for their own reservations
         if (auth()->user()->hasRole('user') && !auth()->user()->can('viewAnyDoctorNote')) {
             return parent::getEloquentQuery()
-                ->whereHas('reservation', fn($query) => $query->where('user_id', auth()->id()))
+                ->whereHas('reservation', fn ($query) => $query->where('user_id', auth()->id()))
                 ->withoutGlobalScopes([
                     SoftDeletingScope::class,
                 ]);
@@ -178,3 +209,4 @@ class DoctorNoteResource extends Resource
         return auth()->user()->can('editDoctorNote');
     }
 }
+

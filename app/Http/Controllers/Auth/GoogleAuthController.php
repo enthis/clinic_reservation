@@ -66,14 +66,17 @@ class GoogleAuthController extends Controller
                 $token = $user->createToken('google-login-token')->plainTextToken;
                 session()->put('api_token', $token);
                 Log::info('Sanctum API token generated and stored in session for user: ' . $user->email);
-
-                return redirect()->intended('/dashboard'); // Redirect to dashboard or intended page
+                if ($user->hasRole('user')) {
+                    return redirect()->intended('/dashboard');
+                } else {
+                    return redirect()->route('filament.admin.auth.login');
+                } // Redirect to dashboard or intended page
             } else {
                 // If user does not exist, create a new user account
                 Log::debug('Creating new user from Google data: ' . $googleUser->email);
-               $password = (app()->environment('local') || app()->environment('testing'))
-                            ? Hash::make('password')
-                            : Hash::make(Str::random(16)); // Generate a 16-character random string and hash it
+                $password = (app()->environment('local') || app()->environment('testing'))
+                    ? Hash::make('password')
+                    : Hash::make(Str::random(16)); // Generate a 16-character random string and hash it
 
                 $newUser = User::create([
                     'name' => $googleUser->name,
@@ -99,7 +102,7 @@ class GoogleAuthController extends Controller
                 session()->put('api_token', $token);
                 Log::info('Sanctum API token generated and stored in session for new user: ' . $newUser->email);
 
-                return redirect()->intended('/dashboard'); // Redirect to dashboard or intended page
+                return redirect()->intended('/dashboard');
             }
         } catch (\Exception $e) {
             // Log the error for debugging

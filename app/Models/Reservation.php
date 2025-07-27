@@ -110,5 +110,32 @@ class Reservation extends Model
     {
         return $this->hasMany(Payment::class);
     }
-}
 
+    /**
+     * Recalculate the payment_amount for this reservation.
+     * This method sums the service price and all associated recipe item prices.
+     *
+     * @return void
+     */
+    public function recalculatePaymentAmount(): void
+    {
+        // Ensure service relationship is loaded
+        $this->loadMissing('service');
+
+        $totalAmount = $this->service->price;
+
+        // Ensure recipes and their prescriptionItems are loaded
+        $this->loadMissing('recipes.prescriptionItem');
+
+        $totalAmount += $this->recipes->sum(function ($recipe) {
+            // Check if prescriptionItem exists to prevent errors if relationship is null
+            return $recipe->prescriptionItem ? $recipe->prescriptionItem->price : 0;
+        });
+
+        // Update the reservation's payment_amount if it has changed
+        if ($this->payment_amount !== $totalAmount) {
+            $this->payment_amount = $totalAmount;
+            $this->save();
+        }
+    }
+}

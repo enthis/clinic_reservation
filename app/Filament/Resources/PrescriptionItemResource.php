@@ -8,6 +8,7 @@ use App\Models\PrescriptionItem;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
+use Filament\Support\RawJs;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -32,10 +33,13 @@ class PrescriptionItemResource extends Resource
                     ->nullable()
                     ->maxLength(65535),
                 Forms\Components\TextInput::make('price')
-                    ->numeric()
                     ->required()
-                    ->prefix('Rp')
-                    ->step(0.01),
+                    ->numeric()
+                    ->stripCharacters(',')
+                    ->dehydrateStateUsing(fn(string $state): float => (float) str_replace(',', '', $state))
+                    ->step(100.0)
+                    ->mask(RawJs::make('$money($input)'))
+                    ->suffix('IDR'),
             ]);
     }
 
@@ -70,13 +74,11 @@ class PrescriptionItemResource extends Resource
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
-                Tables\Actions\ForceDeleteAction::make(),
                 Tables\Actions\RestoreAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
-                    Tables\Actions\ForceDeleteBulkAction::make(),
                     Tables\Actions\RestoreBulkAction::make(),
                 ]),
             ]);
@@ -137,4 +139,3 @@ class PrescriptionItemResource extends Resource
         return auth()->user()->can('editPrescriptionItem');
     }
 }
-

@@ -26,7 +26,7 @@ class RecipeResource extends Resource
             ->schema([
                 Forms\Components\Select::make('reservation_id')
                     ->relationship('reservation', 'id')
-                    ->getOptionLabelFromRecordUsing(fn ($record) => "Reservation #{$record->id} - {$record->user->name} ({$record->scheduled_date->format('M d, Y')})")
+                    ->getOptionLabelFromRecordUsing(fn($record) => "Reservation #{$record->id} - {$record->user->name} ({$record->scheduled_date->format('M d, Y')})")
                     ->required()
                     ->searchable()
                     ->preload(),
@@ -55,6 +55,10 @@ class RecipeResource extends Resource
                 Tables\Columns\TextColumn::make('reservation.user.name')
                     ->label('Patient Name')
                     ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('reservation.scheduled_date') // Display Reservation Date
+                    ->label('Reservation Date')
+                    ->date()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('prescriptionItem.name')
                     ->label('Item')
@@ -90,13 +94,11 @@ class RecipeResource extends Resource
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
-                Tables\Actions\ForceDeleteAction::make(),
                 Tables\Actions\RestoreAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
-                    Tables\Actions\ForceDeleteBulkAction::make(),
                     Tables\Actions\RestoreBulkAction::make(),
                 ]),
             ]);
@@ -123,7 +125,7 @@ class RecipeResource extends Resource
         // Doctors can only see/manage recipes for their own reservations
         if (auth()->user()->hasRole('doctor') && !auth()->user()->can('viewAnyRecipe')) {
             return parent::getEloquentQuery()
-                ->whereHas('reservation', fn ($query) => $query->where('doctor_id', auth()->user()->doctor->id))
+                ->whereHas('reservation', fn($query) => $query->where('doctor_id', auth()->user()->doctor->id))
                 ->withoutGlobalScopes([
                     SoftDeletingScope::class,
                 ]);
@@ -131,7 +133,7 @@ class RecipeResource extends Resource
         // Users can only see their own recipes
         if (auth()->user()->hasRole('user') && !auth()->user()->can('viewAnyRecipe')) {
             return parent::getEloquentQuery()
-                ->whereHas('reservation', fn ($query) => $query->where('user_id', auth()->id()))
+                ->whereHas('reservation', fn($query) => $query->where('user_id', auth()->id()))
                 ->withoutGlobalScopes([
                     SoftDeletingScope::class,
                 ]);
@@ -184,4 +186,3 @@ class RecipeResource extends Resource
         return auth()->user()->can('editRecipe');
     }
 }
-

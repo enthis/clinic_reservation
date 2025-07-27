@@ -4,11 +4,13 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\ReservationResource\Pages;
 use App\Filament\Resources\ReservationResource\RelationManagers;
+use App\Models\Doctor;
 use App\Models\Reservation;
 use Filament\Forms;
 use Filament\Forms\Components\Card;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
+use Filament\Support\RawJs;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -31,11 +33,25 @@ class ReservationResource extends Resource
                         Forms\Components\Select::make('user_id')
                             ->relationship('user', 'name')
                             ->required()
+                            ->disabled(function (): ?int {
+                                $user = auth()->user();
+                                if ($user->hasRole('doctor')) {
+                                    return true;
+                                }
+                                return false;
+                            })
                             ->searchable()
                             ->preload(),
                         Forms\Components\Select::make('doctor_id')
                             ->relationship('doctor', 'name')
                             ->required()
+                            ->disabled(function (): ?int {
+                                $user = auth()->user();
+                                if ($user->hasRole('doctor')) {
+                                    return true;
+                                }
+                                return false;
+                            })
                             ->searchable()
                             ->preload(),
                         Forms\Components\Select::make('service_id')
@@ -52,19 +68,47 @@ class ReservationResource extends Resource
                             ->relationship('schedule', 'day_of_week')
                             ->getOptionLabelFromRecordUsing(fn($record) => "{$record->day_name} ({$record->start_time} - {$record->end_time})")
                             ->required()
+                            ->disabled(function (): ?int {
+                                $user = auth()->user();
+                                if ($user->hasRole('doctor')) {
+                                    return true;
+                                }
+                                return false;
+                            })
                             ->searchable()
                             ->preload(),
                         Forms\Components\DatePicker::make('scheduled_date')
                             ->required()
+                            ->disabled(function (): ?int {
+                                $user = auth()->user();
+                                if ($user->hasRole('doctor')) {
+                                    return true;
+                                }
+                                return false;
+                            })
                             ->native(false),
                         Forms\Components\TimePicker::make('scheduled_time')
                             ->required()
+                            ->disabled(function (): ?int {
+                                $user = auth()->user();
+                                if ($user->hasRole('doctor')) {
+                                    return true;
+                                }
+                                return false;
+                            })
                             ->seconds(false)
                             ->displayFormat('H:i'),
                     ])->columns(3), // Arrange these three fields in 3 columns
 
                 Forms\Components\Section::make('Status & Payment')
                     ->description('Manage reservation and payment statuses.')
+                    ->visible(function (): ?int {
+                        $user = auth()->user();
+                        if ($user->hasRole('doctor')) {
+                            return false;
+                        }
+                        return true;
+                    })
                     ->schema([
                         Forms\Components\Select::make('status')
                             ->options([
@@ -88,19 +132,24 @@ class ReservationResource extends Resource
                             ->default('pending')
                             ->native(false),
                         Forms\Components\TextInput::make('payment_amount')
-                            ->numeric()
                             ->required()
-                            ->prefix('Rp')
-                            ->step(0.01),
+                            ->numeric()
+                            ->stripCharacters(',')
+                            ->dehydrateStateUsing(fn(string $state): float => (float) str_replace(',', '', $state))
+                            ->step(100.0)
+                            ->mask(RawJs::make('$money($input)'))
+                            ->suffix('IDR'),
                         Forms\Components\Select::make('approved_by')
                             ->relationship('approver', 'name')
                             ->label('Approved By (Staff)')
+                            ->disabled()
                             ->nullable()
                             ->searchable()
                             ->preload(),
                         Forms\Components\Select::make('completed_by')
                             ->relationship('completer', 'name')
                             ->label('Completed By (Staff)')
+                            ->disabled()
                             ->nullable()
                             ->searchable()
                             ->preload(),
@@ -193,7 +242,24 @@ class ReservationResource extends Resource
                     ]),
                 Tables\Filters\SelectFilter::make('doctor_id')
                     ->relationship('doctor', 'name')
-                    ->label('Filter by Doctor'),
+                    ->label('Filter by Doctor')
+                    ->options(function (): array {
+                        $user = auth()->user();
+                        // If the logged-in user is a doctor, only show their own doctor in the filter
+                        if ($user->hasRole('doctor') && $user->doctor) {
+                            return [$user->doctor->id => $user->doctor->name];
+                        }
+                        // Otherwise (admin/staff), show all doctors
+                        return Doctor::pluck('name', 'id')->toArray();
+                    })
+                    ->default(function (): ?int {
+                        $user = auth()->user();
+                        // Set default filter to current doctor's ID if logged in as a doctor
+                        if ($user->hasRole('doctor') && $user->doctor) {
+                            return $user->doctor->id;
+                        }
+                        return null;
+                    }),
                 Tables\Filters\SelectFilter::make('service_id')
                     ->relationship('service', 'name')
                     ->label('Filter by Service'),
@@ -201,7 +267,6 @@ class ReservationResource extends Resource
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
-                Tables\Actions\ForceDeleteAction::make(),
                 Tables\Actions\RestoreAction::make(),
                 // Custom actions for staff/doctor
                 Tables\Actions\Action::make('approve')
@@ -222,6 +287,22 @@ class ReservationResource extends Resource
                     ->color('info')
                     ->visible(fn(Reservation $record): bool => $record->status === 'approved' && auth()->user()->can('completeReservations'))
                     ->action(function (Reservation $record) {
+                        $record->recalculatePaymentAmount();
+                        $record->refresh();
+                        // Check if total payments paid match payment_amount
+                        $totalPaid = $record->payments()
+                            ->whereIn('transaction_status', ['settlement', 'paid', 'capture'])
+                            ->sum('amount');
+
+                        if ($totalPaid < $record->payment_amount) {
+                            \Filament\Notifications\Notification::make()
+                                ->title('Cannot Complete Reservation')
+                                ->body('Total paid amount (Rp' . number_format($totalPaid, 0, ',', '.') . ') does not match reservation amount (Rp' . number_format($record->payment_amount, 0, ',', '.') . ').')
+                                ->danger()
+                                ->send();
+                            return; // Stop the action
+                        }
+
                         $record->update(['status' => 'completed', 'completed_by' => auth()->id()]);
                         \Filament\Notifications\Notification::make()
                             ->title('Reservation Completed')
@@ -232,7 +313,6 @@ class ReservationResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
-                    Tables\Actions\ForceDeleteBulkAction::make(),
                     Tables\Actions\RestoreBulkAction::make(),
                 ]),
             ]);
@@ -286,7 +366,7 @@ class ReservationResource extends Resource
     public static function canViewAny(): bool
     {
         // Admins and Staff can view any. Doctors/Users might have restricted view.
-        return auth()->user()->can('viewAnyReservation');
+        return auth()->user()->can('viewAnyReservation') || auth()->user()->can('viewReservation');
     }
 
     public static function canCreate(): bool

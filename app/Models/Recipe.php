@@ -18,6 +18,7 @@ class Recipe extends Model
     protected $fillable = [
         'reservation_id',
         'prescription_item_id',
+        'frequency_to_consume',
         'dose',
         'notes',
     ];
