@@ -1,4 +1,4 @@
-<div class="flex justify-end">
+<div class="flex justify-start px-4 pt-2">
     <x-filament::button
         tag="a"
         href="{{ route('landing') }}"
