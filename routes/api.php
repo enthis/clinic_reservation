@@ -23,6 +23,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // Route to initiate Midtrans payment via AJAX
     Route::post('/reservation/{reservation}/pay-midtrans', [MidtransPaymentController::class, 'initiatePayment'])
         ->name('api.reservation.pay.midtrans');
+    // Route to check payment status from Midtrans
+    Route::get('/reservation/{reservation}/check-payment-status', [MidtransPaymentController::class, 'checkPaymentStatus'])
+        ->name('api.reservation.check-payment-status');
 
     // API Logout route
     Route::post('/logout', [ApiAuthController::class, 'logout'])->name('api.logout');
