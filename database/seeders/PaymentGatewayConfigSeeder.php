@@ -23,7 +23,7 @@ class PaymentGatewayConfigSeeder extends Seeder
                 'config_key' => 'server_key',
             ],
             [
-                'config_value' => Crypt::encryptString('SB-Mid-server-m1D0PCtdL_XdCyYo9osSSMEe'), // Encrypt sensitive data
+                'config_value' => '', // Encrypt sensitive data
                 'is_encrypted' => true,
             ]
         );
@@ -35,7 +35,7 @@ class PaymentGatewayConfigSeeder extends Seeder
                 'config_key' => 'client_key',
             ],
             [
-                'config_value' => 'SB-Mid-client-KEnuu62UKFDhFolJ', // Client key usually not encrypted
+                'config_value' => '', // Client key usually not encrypted
                 'is_encrypted' => false,
             ]
         );
@@ -47,7 +47,7 @@ class PaymentGatewayConfigSeeder extends Seeder
                 'config_key' => 'merchant_id',
             ],
             [
-                'config_value' => 'G875131585',
+                'config_value' => '',
                 'is_encrypted' => false,
             ]
         );
