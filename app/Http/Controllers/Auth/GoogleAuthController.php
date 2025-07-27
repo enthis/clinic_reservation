@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Auth;
 use Laravel\Socialite\Facades\Socialite;
 use Illuminate\Support\Facades\Log; // For logging errors
 use Spatie\Permission\Models\Role; // Import Spatie Role model
+use Illuminate\Support\Facades\Hash; // Import Hash facade
+use Illuminate\Support\Str; // Import Str facade
 
 class GoogleAuthController extends Controller
 {
@@ -69,13 +71,16 @@ class GoogleAuthController extends Controller
             } else {
                 // If user does not exist, create a new user account
                 Log::debug('Creating new user from Google data: ' . $googleUser->email);
+               $password = (app()->environment('local') || app()->environment('testing'))
+                            ? Hash::make('password')
+                            : Hash::make(Str::random(16)); // Generate a 16-character random string and hash it
+
                 $newUser = User::create([
                     'name' => $googleUser->name,
                     'email' => $googleUser->email,
                     'google_id' => $googleUser->id,
-                    'email_verified_at' => now(), // Mark email as verified since it's from Google
-                    'password' => null, // No password needed for Google login
-                    // 'role' => 'user', // This 'role' column is less important now with Spatie roles
+                    'email_verified_at' => now(),
+                    'password' => $password, // Use the generated/hashed password
                 ]);
 
                 // Assign default 'user' role from Spatie
